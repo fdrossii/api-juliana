@@ -1,20 +1,15 @@
 package com.juliana.api_juliana.controllers;
 
-import com.juliana.api_juliana.dtos.AppointmentBulkRequestDto;
-import com.juliana.api_juliana.dtos.AppointmentCreateDto;
-import com.juliana.api_juliana.dtos.BookingAppointmentDto;
-import com.juliana.api_juliana.dtos.StatsResponseDto;
+import com.juliana.api_juliana.dtos.*;
 import com.juliana.api_juliana.entities.Appointment;
 import com.juliana.api_juliana.services.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,7 +19,7 @@ public class AppointmentController {
     private final AppointmentService    appointmentService;
 
     @PostMapping()
-    public ResponseEntity<Appointment> createAppointment(
+    public ResponseEntity<AppointmentDto> createAppointment(
             @Valid @RequestBody AppointmentCreateDto dto) {
 
         return ResponseEntity.ok(
@@ -32,14 +27,14 @@ public class AppointmentController {
         );
     }
 
-    @PutMapping("/reserve")
-    public ResponseEntity<Appointment> reserve(
-            @Valid @RequestBody BookingAppointmentDto dto) {
-        return ResponseEntity.ok(appointmentService.reserveAppointment(dto));
+    @PutMapping("/book")
+    public ResponseEntity<AppointmentDto> book(
+            @Valid @RequestBody BookAppointmentDto dto) {
+        return ResponseEntity.ok(appointmentService.bookAppointment(dto));
     }
 
     @PostMapping("/bulk")
-    public ResponseEntity<List<Appointment>> createBulk(
+    public ResponseEntity<List<AppointmentDto>> createBulk(
             @Valid @RequestBody AppointmentBulkRequestDto dto) {
 
         return ResponseEntity.ok(
@@ -48,22 +43,22 @@ public class AppointmentController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<Appointment>> getAllAppointments(){
+    public ResponseEntity<List<AppointmentDto>> getAllAppointments(){
         return ResponseEntity.ok(this.appointmentService.getAllAppointments());
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<Appointment>> getAppointmentsForClient(){
+    public ResponseEntity<List<AppointmentDto>> getAppointmentsForClient(){
         return ResponseEntity.ok(this.appointmentService.getAppointmentsForClient());
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<Appointment>> getAppointmentsForAdmin(){
+    public ResponseEntity<List<AppointmentDto>> getAppointmentsForAdmin(){
         return ResponseEntity.ok(this.appointmentService.getAppointmentsForAdmin());
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<Appointment>> getAppointmentHistory(){
+    public ResponseEntity<List<AppointmentDto>> getAppointmentHistory(){
         return ResponseEntity.ok(this.appointmentService.getAppointmentHistory());
     }
 
@@ -74,8 +69,8 @@ public class AppointmentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Appointment> updateAppointment(@PathVariable Integer id,@RequestBody Appointment appointment){
-        return ResponseEntity.ok(this.appointmentService.updateAppointment(id, appointment));
+    public ResponseEntity<AppointmentDto> updateAppointment(@PathVariable Integer id,@RequestBody AppointmentDto appointmentDto){
+        return ResponseEntity.ok(this.appointmentService.updateAppointment(id, appointmentDto));
     }
 
     @GetMapping("/stats")

@@ -2,15 +2,14 @@ package com.juliana.api_juliana.entities;
 
 import com.juliana.api_juliana.enums.TreatmentState;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Table(name = "treatments")
 @Entity
-@Data
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Treatment {
 
     @Id

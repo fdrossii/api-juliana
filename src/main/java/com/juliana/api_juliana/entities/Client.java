@@ -1,18 +1,14 @@
 package com.juliana.api_juliana.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
+import lombok.*;
 
 @Table(name = "clients")
 @Entity
-@Data
+@Getter@Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Client{
 
     @Id

@@ -2,11 +2,16 @@ package com.juliana.api_juliana.dtos;
 
 import jakarta.validation.constraints.*;
 
-import lombok.Data;
+import lombok.*;
 
-@Data
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ClientDto {
-
+    private Integer id;
     @NotBlank(message = "El nombre es obligatorio")
     private String name;
 

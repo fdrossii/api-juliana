@@ -8,12 +8,13 @@ import com.juliana.api_juliana.enums.AppointmentState;
 import com.juliana.api_juliana.enums.TreatmentState;
 import com.juliana.api_juliana.exceptions.BadRequestException;
 import com.juliana.api_juliana.exceptions.ResourceNotFoundException;
+import com.juliana.api_juliana.mapper.Mapper;
 import com.juliana.api_juliana.repositories.AppointmentRepository;
 
 import com.juliana.api_juliana.repositories.ClientRepository;
 import com.juliana.api_juliana.repositories.TreatmentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -22,16 +23,20 @@ import java.time.LocalTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
-public class AppointmentService {
+public class AppointmentService implements IAppointmentService {
 
-    private final EmailService emailService;
-    private final AppointmentRepository appointmentRepository;
-    private final ClientRepository clientRepository;
-    private final TreatmentRepository treatmentRepository;
+    @Autowired
+    EmailService emailService;
+    @Autowired
+    AppointmentRepository appointmentRepository;
+    @Autowired
+    ClientRepository clientRepository;
+    @Autowired
+    TreatmentRepository treatmentRepository;
 
+    @Override
     @Transactional
-    public Appointment reserveAppointment(BookingAppointmentDto dto) {
+        public AppointmentDto bookAppointment(BookAppointmentDto dto) {
         Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Turno no encontrado"));
 
@@ -48,10 +53,12 @@ public class AppointmentService {
 
         Client client = clientRepository.findByEmail(dto.getClient().getEmail())
                 .orElseGet(() -> {
-                    Client newClient = new Client();
-                    newClient.setName(dto.getClient().getName());
-                    newClient.setEmail(dto.getClient().getEmail());
-                    newClient.setPhone(dto.getClient().getPhone());
+                    Client newClient = Client.builder()
+                            .name(dto.getClient().getName())
+                            .email(dto.getClient().getEmail())
+                            .phone(dto.getClient().getPhone())
+                            .build();
+
                     return clientRepository.save(newClient);
                 });
 
@@ -59,58 +66,63 @@ public class AppointmentService {
         appointment.setTreatment(treatment);
         appointment.setState(AppointmentState.RESERVED);
 
-        this.emailService.sendConfirmedAppointmentEmail(appointment.getClient().getEmail(), appointment);
+        this.emailService.sendConfirmedAppointmentEmail(appointment.getClient().getEmail(),Mapper.toDto(appointment));
 
-        return this.appointmentRepository.save(appointment);
+        return Mapper.toDto(this.appointmentRepository.save(appointment));
     }
 
-
-    public List<Appointment> getAllAppointments(){
-        return this.appointmentRepository.findAll();
+    @Override
+    public List<AppointmentDto> getAllAppointments(){
+        return this.appointmentRepository.findAll().stream().map(Mapper::toDto).toList();
     }
 
-    public List<Appointment> getAppointmentsForClient(){
+    @Override
+    public List<AppointmentDto> getAppointmentsForClient(){
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
-        return this.appointmentRepository.findAvailableFromNow(today, now);
+        return this.appointmentRepository.findAvailableFromNow(today, now).stream().map(Mapper::toDto).toList();
     }
 
-    public List<Appointment> getAppointmentsForAdmin(){
-        return this.appointmentRepository.findVisibleForAdmin();
+    @Override
+    public List<AppointmentDto> getAppointmentsForAdmin(){
+        return this.appointmentRepository.findVisibleForAdmin().stream().map(Mapper::toDto).toList();
     }
 
-    public List<Appointment> getAppointmentHistory(){
-        return this.appointmentRepository.findArchivedAppointments();
+    @Override
+    public List<AppointmentDto> getAppointmentHistory(){
+        return this.appointmentRepository.findArchivedAppointments().stream().map(Mapper::toDto).toList();
     }
 
-    public Appointment createAppointment(AppointmentCreateDto dto){
+    @Override
+    public AppointmentDto createAppointment(AppointmentCreateDto dto){
         if (appointmentRepository.existsByDateAndTime(dto.getDate(), dto.getTime())) {
             throw new IllegalStateException("El turno ya existe");
         }
 
-        Appointment appointment = new Appointment();
-        appointment.setDate(dto.getDate());
-        appointment.setTime(dto.getTime());
-        appointment.setState(AppointmentState.AVAILABLE);
+        Appointment appointment = Appointment.builder()
+                .date(dto.getDate())
+                .time(dto.getTime())
+                .state(AppointmentState.AVAILABLE)
+                .build();
 
-        return appointmentRepository.save(appointment);
+        return Mapper.toDto(appointmentRepository.save(appointment));
     }
 
-    public List<Appointment> createBulkAppointment(AppointmentBulkRequestDto appointments){
+    @Override
+    public List<AppointmentDto> createBulkAppointment(AppointmentBulkRequestDto dto){
 
-        List<Appointment> entities = appointments.getTimes().stream()
-                .map(timeStr -> {
-                   Appointment appointment = new Appointment();
-                    appointment.setDate(appointments.getDate());
-                    appointment.setTime(timeStr);
-                    appointment.setState(AppointmentState.AVAILABLE);
+        List<Appointment> entities = dto.getTimes().stream()
+                .map(time -> Appointment.builder()
+                        .date(dto.getDate())
+                        .time(time)
+                        .state(AppointmentState.AVAILABLE)
+                        .build()
+                ).toList();
 
-                    return appointment;
-                }).toList();
-
-        return this.appointmentRepository.saveAll(entities);
+        return this.appointmentRepository.saveAll(entities).stream().map(Mapper::toDto).toList();
     }
 
+    @Override
     public void deleteAppointment(Integer id){
         if(!appointmentRepository.existsById(id)){
             throw new ResourceNotFoundException(("El turno con id: " + id +" no fue econtrado"));
@@ -118,17 +130,19 @@ public class AppointmentService {
         this.appointmentRepository.deleteById(id);
     }
 
-    public Appointment updateAppointment(Integer id, Appointment appointment){
+    @Override
+    public AppointmentDto updateAppointment(Integer id, AppointmentDto appointmentDto){
         Appointment exists = this.appointmentRepository.findById(id).
                 orElseThrow(() -> new ResourceNotFoundException("Turno con id: " + id + " no encontrado"));
 
-        exists.setTime(appointment.getTime());
-        exists.setDate(appointment.getDate());
-        exists.setState(appointment.getState());
-        // CLIENTE
-        if (appointment.getClient() != null) {
+        exists.setTime(appointmentDto.getTime());
+        exists.setDate(appointmentDto.getDate());
+        exists.setState(appointmentDto.getState());
+
+
+        if (appointmentDto.getClientDto() != null) {
             Client client = clientRepository.findById(
-                    appointment.getClient().getId()
+                    appointmentDto.getClientDto().getId()
             ).orElseThrow(() ->
                     new ResourceNotFoundException("Cliente no encontrado")
             );
@@ -137,10 +151,10 @@ public class AppointmentService {
             exists.setClient(null);
         }
 
-        // TRATAMIENTO
-        if (appointment.getTreatment() != null) {
+
+        if (appointmentDto.getTreatmentDto() != null) {
             Treatment treatment = treatmentRepository.findById(
-                    appointment.getTreatment().getId()
+                    appointmentDto.getTreatmentDto().getId()
             ).orElseThrow(() ->
                     new ResourceNotFoundException("Servicio no encontrado")
             );
@@ -149,9 +163,10 @@ public class AppointmentService {
             exists.setTreatment(null);
         }
 
-        return this.appointmentRepository.save(exists);
+        return Mapper.toDto(this.appointmentRepository.save(exists));
     }
 
+    @Override
     public StatsResponseDto getStats(LocalDate start, LocalDate end) {
         GlobalStatsDto global = this.appointmentRepository.getGlobalStats(AppointmentState.FINISHED, start, end);
         if (global.getTotalRevenue() == null) {

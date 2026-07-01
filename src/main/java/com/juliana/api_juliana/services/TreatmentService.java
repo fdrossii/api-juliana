@@ -1,29 +1,41 @@
 package com.juliana.api_juliana.services;
 
+import com.juliana.api_juliana.dtos.TreatmentDto;
 import com.juliana.api_juliana.entities.Treatment;
 import com.juliana.api_juliana.exceptions.BadRequestException;
 import com.juliana.api_juliana.exceptions.ResourceNotFoundException;
+import com.juliana.api_juliana.mapper.Mapper;
 import com.juliana.api_juliana.repositories.TreatmentRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
-public class TreatmentService {
+public class TreatmentService implements  ITreatmentService{
 
-    private final TreatmentRepository treatmentRepository;
+    @Autowired
+    TreatmentRepository treatmentRepository;
 
-    public Treatment saveTreatment(Treatment treatment) {
-        if(treatment.getName() == null || treatment.getName().isBlank() || treatment.getPrice() == null){
+    @Override
+    public TreatmentDto createTreatment(TreatmentDto treatmentDto) {
+        if(treatmentDto.getName() == null || treatmentDto.getName().isBlank() || treatmentDto.getPrice() == null){
             throw new BadRequestException("Campo nombre o precio vacío");
         }
-        return treatmentRepository.save(treatment);
+
+        Treatment treatment = Treatment.builder()
+                .name(treatmentDto.getName())
+                .price(treatmentDto.getPrice())
+                .duration(treatmentDto.getDuration())
+                .state(treatmentDto.getState())
+                .build();
+
+        return Mapper.toDto(treatmentRepository.save(treatment));
     }
 
-    public List<Treatment> getTreatments() {
-        return treatmentRepository.findAll();
+    @Override
+    public List<TreatmentDto> getTreatments() {
+        return treatmentRepository.findAll().stream().map(Mapper::toDto).toList();
     }
 
     public void deleteTreatment(Integer id) {
@@ -34,19 +46,21 @@ public class TreatmentService {
         treatmentRepository.deleteById(id);
     }
 
-    public Treatment updateTreatment(Integer id, Treatment treatment) {
-        Treatment exists = treatmentRepository.findById(id)
+    @Override
+    public TreatmentDto updateTreatment(Integer id, TreatmentDto treatmentDto) {
+        Treatment treatment = treatmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("El tratamiento con id " + id + " no fue encontrado"));
 
-        exists.setName(treatment.getName());
-        exists.setPrice(treatment.getPrice());
-        exists.setState(treatment.getState());
-        exists.setDuration(treatment.getDuration());
+        treatment.setName(treatmentDto.getName());
+        treatment.setPrice(treatmentDto.getPrice());
+        treatment.setState(treatmentDto.getState());
+        treatment.setDuration(treatmentDto.getDuration());
 
-        return treatmentRepository.save(exists);
+        return Mapper.toDto(treatmentRepository.save(treatment));
     }
 
-    public List<Treatment> getAvailableTreatments() {
-        return this.treatmentRepository.findAvailableTreatments();
+    @Override
+    public List<TreatmentDto> getAvailableTreatments() {
+        return treatmentRepository.findAvailableTreatments().stream().map(Mapper::toDto).toList();
     }
 }

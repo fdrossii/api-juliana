@@ -1,45 +1,47 @@
 package com.juliana.api_juliana.controllers;
 
+import com.juliana.api_juliana.dtos.TreatmentDto;
 import com.juliana.api_juliana.entities.Treatment;
 import com.juliana.api_juliana.services.TreatmentService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/treatments")
 public class TreatmentController {
 
-    private final TreatmentService treatmentService;
+    @Autowired
+    TreatmentService treatmentService;
 
     @PostMapping()
-    public ResponseEntity<Treatment> create(@RequestBody Treatment treatment) {
-        return ResponseEntity.ok(treatmentService.saveTreatment(treatment));
+    public ResponseEntity<TreatmentDto> createTreatment(@RequestBody TreatmentDto treatmentDto) {
+        TreatmentDto created = treatmentService.createTreatment(treatmentDto);
+
+        return ResponseEntity.created(URI.create("/api/treatments" + created.getId())).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Treatment> update(@PathVariable Integer id, @RequestBody Treatment treatment) {
-        return ResponseEntity.ok(treatmentService.updateTreatment(treatment.getId(),treatment));
+    public ResponseEntity<TreatmentDto> update(@PathVariable Integer id, @RequestBody TreatmentDto treatmentDto) {
+        return ResponseEntity.ok(treatmentService.updateTreatment(id, treatmentDto));
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<Treatment>> getAllTreatments() {
+    public ResponseEntity<List<TreatmentDto>> getAllTreatments() {
         return ResponseEntity.ok(treatmentService.getTreatments());
     }
 
     @GetMapping("/forClients")
-    public ResponseEntity<List<Treatment>> getAvailableTreatments() {
+    public ResponseEntity<List<TreatmentDto>> getAvailableTreatments() {
         return ResponseEntity.ok(treatmentService.getAvailableTreatments());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteById(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
         treatmentService.deleteTreatment(id);
         return ResponseEntity.noContent().build();
     }
-
-
-
 }

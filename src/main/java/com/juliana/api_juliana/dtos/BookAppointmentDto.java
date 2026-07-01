@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class BookingAppointmentDto {
+public class BookAppointmentDto {
 
     @NotNull(message = "El treatmentId es obligatorio")
     private Integer treatmentId;

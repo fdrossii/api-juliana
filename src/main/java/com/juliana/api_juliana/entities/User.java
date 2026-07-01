@@ -2,13 +2,18 @@ package com.juliana.api_juliana.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.Builder;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
 @Builder
 public class User {
 
