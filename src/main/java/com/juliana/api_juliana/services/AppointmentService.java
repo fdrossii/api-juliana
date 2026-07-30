@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AppointmentService implements IAppointmentService {
@@ -93,33 +95,60 @@ public class AppointmentService implements IAppointmentService {
         return this.appointmentRepository.findArchivedAppointments().stream().map(Mapper::toDto).toList();
     }
 
-    @Override
-    public AppointmentDto createAppointment(AppointmentCreateDto dto){
-        if (appointmentRepository.existsByDateAndTime(dto.getDate(), dto.getTime())) {
-            throw new IllegalStateException("El turno ya existe");
+    private Appointment createOrReactivateAppointment(LocalDate date, LocalTime time) {
+
+        Optional<Appointment> existingAppointment =
+                appointmentRepository.findByDateAndTime(date, time);
+
+        if (existingAppointment.isPresent()) {
+
+            Appointment appointment = existingAppointment.get();
+
+            if (appointment.getState() == AppointmentState.CANCELED) {
+
+                appointment.setState(AppointmentState.AVAILABLE);
+                appointment.setClient(null);
+                appointment.setTreatment(null);
+
+                return appointment;
+            }
+
+            throw new IllegalStateException(
+                    "El turno del " + date + " a las " + time + " ya existe."
+            );
         }
 
-        Appointment appointment = Appointment.builder()
-                .date(dto.getDate())
-                .time(dto.getTime())
+        return Appointment.builder()
+                .date(date)
+                .time(time)
                 .state(AppointmentState.AVAILABLE)
                 .build();
-
-        return Mapper.toDto(appointmentRepository.save(appointment));
     }
 
     @Override
-    public List<AppointmentDto> createBulkAppointment(AppointmentBulkRequestDto dto){
+    public AppointmentDto createAppointment(AppointmentCreateDto dto) {
 
-        List<Appointment> entities = dto.getTimes().stream()
-                .map(time -> Appointment.builder()
-                        .date(dto.getDate())
-                        .time(time)
-                        .state(AppointmentState.AVAILABLE)
-                        .build()
-                ).toList();
+        Appointment appointment = createOrReactivateAppointment(
+                dto.getDate(),
+                dto.getTime()
+        );
 
-        return this.appointmentRepository.saveAll(entities).stream().map(Mapper::toDto).toList();
+        return Mapper.toDto(
+                appointmentRepository.save(appointment)
+        );
+    }
+
+    @Override
+    public List<AppointmentDto> createBulkAppointment(AppointmentBulkRequestDto dto) {
+
+        List<Appointment> appointments = dto.getTimes().stream()
+                .map(time -> createOrReactivateAppointment(dto.getDate(), time))
+                .toList();
+
+        return appointmentRepository.saveAll(appointments)
+                .stream()
+                .map(Mapper::toDto)
+                .toList();
     }
 
     @Override
