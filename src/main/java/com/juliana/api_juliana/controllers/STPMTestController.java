@@ -14,7 +14,7 @@ public class STPMTestController {
     public String testSmtp() {
         try {
             Socket socket = new Socket();
-            socket.connect(new InetSocketAddress("smtp.gmail.com", 587), 10000);
+            socket.connect(new InetSocketAddress("smtp.gmail.com", 465), 10000);
             socket.close();
 
             return "CONEXIÓN SMTP EXITOSA";
