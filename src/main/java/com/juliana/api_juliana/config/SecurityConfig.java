@@ -36,7 +36,7 @@ public class SecurityConfig {
                                 "/api/treatments/all",
                                 "/api/treatments/forClients",
                                 "/api/appointments/available",
-                                "/api/appointments/reserve").permitAll()
+                                "/api/appointments/book").permitAll()
                     .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtEntryPoint()))
                 .addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

@@ -67,7 +67,7 @@ public class AppointmentService implements IAppointmentService {
         appointment.setTreatment(treatment);
         appointment.setState(AppointmentState.RESERVED);
 
-        this.emailService.sendConfirmedAppointmentEmail(appointment.getClient().getEmail(),Mapper.toDto(appointment));
+        //this.emailService.sendConfirmedAppointmentEmail(appointment.getClient().getEmail(),Mapper.toDto(appointment));
 
         return Mapper.toDto(this.appointmentRepository.save(appointment));
     }
