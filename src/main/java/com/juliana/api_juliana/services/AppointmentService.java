@@ -37,7 +37,8 @@ public class AppointmentService implements IAppointmentService {
 
     @Override
     @Transactional
-        public AppointmentDto bookAppointment(BookAppointmentDto dto) {
+    public AppointmentDto bookAppointment(BookAppointmentDto dto) {
+
         Appointment appointment = appointmentRepository.findById(dto.getAppointmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Turno no encontrado"));
 
@@ -52,12 +53,29 @@ public class AppointmentService implements IAppointmentService {
             throw new BadRequestException("El servicio no está disponible");
         }
 
-        Client client = clientRepository.findByEmail(dto.getClient().getEmail())
+        String email = dto.getClient().getEmail();
+        String name = dto.getClient().getName();
+        String phone = dto.getClient().getPhone();
+
+        Client client = clientRepository.findByEmail(email)
+                .map(existingClient -> {
+
+                    if (!existingClient.getName().equalsIgnoreCase(name)
+                            || !existingClient.getPhone().equals(phone)) {
+
+                        throw new BadRequestException(
+                                "El email ya está asociado a otro cliente"
+                        );
+                    }
+
+                    return existingClient;
+                })
                 .orElseGet(() -> {
+
                     Client newClient = Client.builder()
-                            .name(dto.getClient().getName())
-                            .email(dto.getClient().getEmail())
-                            .phone(dto.getClient().getPhone())
+                            .name(name)
+                            .email(email)
+                            .phone(phone)
                             .build();
 
                     return clientRepository.save(newClient);
@@ -67,9 +85,12 @@ public class AppointmentService implements IAppointmentService {
         appointment.setTreatment(treatment);
         appointment.setState(AppointmentState.RESERVED);
 
-        //this.emailService.sendConfirmedAppointmentEmail(appointment.getClient().getEmail(),Mapper.toDto(appointment));
+        // this.emailService.sendConfirmedAppointmentEmail(
+        //         appointment.getClient().getEmail(),
+        //         Mapper.toDto(appointment)
+        // );
 
-        return Mapper.toDto(this.appointmentRepository.save(appointment));
+        return Mapper.toDto(appointmentRepository.save(appointment));
     }
 
     @Override
